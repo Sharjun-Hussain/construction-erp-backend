@@ -260,6 +260,24 @@ const createProposal = async (req, res, next) => {
   } catch (e) { return next(e); }
 };
 
+const updateProposal = async (req, res, next) => {
+  try {
+    const p = await Proposal.findOne({ where: { id: req.params.id, ...org(req) } });
+    if (!p) return error(res, 'Not found', 404);
+    const body = { ...req.body };
+    delete body.id;
+    delete body.organization_id;
+    delete body.number;
+    delete body.revision;
+    if (body.validity_days && !body.valid_until) {
+      const v = new Date(); v.setDate(v.getDate() + Number(body.validity_days));
+      body.valid_until = v.toISOString().slice(0, 10);
+    }
+    await p.update(body);
+    return success(res, p, 'Proposal updated successfully');
+  } catch (e) { return next(e); }
+};
+
 const transitionProposal = async (req, res, next) => {
   try {
     const p = await Proposal.findOne({ where: { id: req.params.id, ...org(req) } });
@@ -321,5 +339,5 @@ const exportProposal = async (req, res, next) => {
 module.exports = {
   listEnquiries, getEnquiry, createEnquiry, updateEnquiry, transitionEnquiry, convertEnquiry,
   listInspections, getInspection, createInspection, completeInspection,
-  listProposals, getProposal, createProposal, transitionProposal, reviseProposal, exportProposal,
+  listProposals, getProposal, createProposal, updateProposal, transitionProposal, reviseProposal, exportProposal,
 };

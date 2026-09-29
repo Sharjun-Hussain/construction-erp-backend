@@ -22,6 +22,7 @@ router.get('/proposals', checkPermission('proposal:view'), c.listProposals);
 router.get('/proposals/:id', checkPermission('proposal:view'), c.getProposal);
 router.get('/proposals/:id/export', checkPermission('proposal:view'), c.exportProposal);
 router.post('/proposals', checkPermission('proposal:create'), c.createProposal);
+router.put('/proposals/:id', checkPermission('proposal:create'), c.updateProposal);
 router.post('/proposals/:id/transition', checkPermission('proposal:create'), c.transitionProposal);
 router.post('/proposals/:id/revise', checkPermission('proposal:create'), c.reviseProposal);
 module.exports = router;
