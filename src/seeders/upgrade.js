@@ -88,6 +88,7 @@ const run = async () => {
     ['equipment:view', 'SiteOps'], ['equipment:create', 'SiteOps'],
     ['job:view', 'SiteOps'], ['job:create', 'SiteOps'],
     ['changerequest:view', 'Changes'], ['changerequest:create', 'Changes'],
+    ['master:view', 'Masters'], ['master:create', 'Masters'], ['master:delete', 'Masters'],
     ['ipc:view', 'IPC'], ['ipc:create', 'IPC'],
     ['procurement:view', 'Procurement'], ['procurement:create', 'Procurement'], ['procurement:approve', 'Procurement'],
     ['subcontract:view', 'Subcontract'], ['subcontract:create', 'Subcontract'], ['subcontract:approve', 'Subcontract'],
@@ -115,6 +116,44 @@ const run = async () => {
     }
   }
   console.log(`upgrade done: ${perms.length} perms, ${roles.length} admin roles, ${granted} grants`);
+  // Seed default lookups for every org (idempotent)
+  const DEFAULT_LOOKUPS = {
+    uom: [['NOS', 'Numbers'], ['M', 'Meter'], ['M2', 'Sq. Meter'], ['M3', 'Cu. Meter'], ['KG', 'Kilogram'], ['TON', 'Ton'], ['LTR', 'Litre'], ['LS', 'Lump Sum'], ['DAY', 'Day'], ['HR', 'Hour'], ['SET', 'Set'], ['BAG', 'Bag']],
+    payment_terms: [['NET30', 'Net 30'], ['NET60', 'Net 60'], ['NET90', 'Net 90'], ['ADV100', '100% Advance'], ['CAD', 'Cash Against Documents']],
+    delivery_method: [['SITE', 'Site Delivery'], ['PICKUP', 'Customer Pickup'], ['COURIER', 'Courier'], ['FREIGHT', 'Freight']],
+    cost_center: [['HO', 'Head Office'], ['SITE', 'Site Operations'], ['STORE', 'Store'], ['WORKSHOP', 'Workshop']],
+    business_type: [['GEN', 'General Contracting'], ['MECH', 'Mechanical'], ['ELEC', 'Electrical'], ['CIVIL', 'Civil'], ['TRADING', 'Trading']],
+    enquiry_type: [['NEW', 'New Project'], ['MAINT', 'Maintenance'], ['REPEAT', 'Repeat Client'], ['AMC', 'Annual Contract']],
+    project_type: [['BLDG', 'Building'], ['INFRA', 'Infrastructure'], ['INDUST', 'Industrial'], ['INTERIOR', 'Interior'], ['MAINT', 'Maintenance']],
+    labour_type: [['MASON', 'Mason'], ['STEEL', 'Steel Fixer'], ['CARP', 'Carpenter'], ['ELEC', 'Electrician'], ['PLUMB', 'Plumber'], ['HELPER', 'Helper'], ['FOREMAN', 'Foreman']],
+    expense_category: [['FUEL', 'Fuel'], ['TRAVEL', 'Travel'], ['FOOD', 'Food & Accommodation'], ['RENT', 'Rent'], ['UTIL', 'Utilities'], ['MAINT', 'Maintenance']],
+    item_category: [['MAT', 'Materials'], ['CONS', 'Consumables'], ['TOOL', 'Tools'], ['SPARE', 'Spares'], ['SAFETY', 'Safety']],
+    bank_guarantee_category: [['BID', 'Bid Bond'], ['PERF', 'Performance Guarantee'], ['ADV', 'Advance Guarantee'], ['RET', 'Retention Guarantee']],
+  };
+  const orgs = await db.Organization.findAll({ attributes: ['id'] });
+  let seeded = 0;
+  for (const o of orgs) {
+    for (const [type, items] of Object.entries(DEFAULT_LOOKUPS)) {
+      for (const [code, name] of items) {
+        const [, isNew] = await db.Lookup.findOrCreate({
+          where: { organization_id: o.id, type, code },
+          defaults: { organization_id: o.id, type, code, name },
+        });
+        if (isNew) seeded++;
+      }
+    }
+    const [, vatNew] = await db.VatRate.findOrCreate({
+      where: { organization_id: o.id, name: 'Standard 15%' },
+      defaults: { organization_id: o.id, name: 'Standard 15%', rate: 15, is_default: true },
+    });
+    if (vatNew) seeded++;
+    const [, vatZero] = await db.VatRate.findOrCreate({
+      where: { organization_id: o.id, name: 'Zero Rated' },
+      defaults: { organization_id: o.id, name: 'Zero Rated', rate: 0 },
+    });
+    if (vatZero) seeded++;
+  }
+  console.log(`seeded ${seeded} default lookups/vat rates`);
 };
 if (require.main === module) run().then(() => process.exit(0)).catch((e) => { console.error(e); process.exit(1); });
 module.exports = run;

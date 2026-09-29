@@ -20,6 +20,10 @@ const DEFAULTS = {
     labour: 'LAB-', equipment: 'EQP-', eqtransfer: 'EQT-', changerequest: 'CR-',
   },
   inventory: { default_min_qty: 0 },
+  report_pdf: {
+    header_text: '', footer_text: '', terms_doc_type: 'proposal',
+    show_logo: true, show_bank_details: true,
+  },
 };
 const GROUPS = Object.keys(DEFAULTS);
 

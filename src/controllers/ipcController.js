@@ -29,6 +29,8 @@ const get = async (req, res, next) => {
 const create = async (req, res, next) => {
   const t = await IpcInvoice.sequelize.transaction();
   try {
+    const { isLocked } = require('./mastersController');
+    if (await isLocked(req.user.organization_id, 'ipc', req.body.invoice_date || new Date().toISOString().slice(0, 10))) { await t.rollback(); return success(res, null, 'Period is closed for IPC entries', 422); }
     const project = await Project.findOne({ where: { id: req.body.project_id, ...org(req) }, transaction: t });
     if (!project) { await t.rollback(); return success(res, null, 'Project not found', 404); }
     const { nextNumber } = require('./settingController');

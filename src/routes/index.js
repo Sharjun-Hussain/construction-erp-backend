@@ -16,6 +16,7 @@ router.use('/estimations', require('./estimations'));
 router.use('/prebid', require('./prebid'));
 router.use('/siteops', require('./siteops'));
 router.use('/changes', require('./changes'));
+router.use('/masters', require('./masters'));
 router.use('/tenders', require('./tenders'));
 router.use('/ipc', require('./ipc'));
 router.use('/procurement', require('./procurement'));

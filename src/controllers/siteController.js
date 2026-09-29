@@ -10,6 +10,8 @@ const listDPR = async (req, res, next) => {
 };
 const createDPR = async (req, res, next) => {
   try {
+    const { isLocked } = require('./mastersController');
+    if (await isLocked(req.user.organization_id, 'dpr', req.body.date)) return success(res, null, 'Period is closed for DPR entries', 422);
     const dpr = await DprLog.create({ ...req.body, ...org(req), submitted_by: req.user.id });
     for (const ln of (req.body.lines || [])) {
       await DprLine.create({ dpr_id: dpr.id, ...org(req), boq_item_id: ln.boq_item_id, qty_done: ln.qty_done, remarks: ln.remarks });
