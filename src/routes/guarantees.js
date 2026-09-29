@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/guaranteeController');
+router.use(authenticate, checkBranchAccess);
+router.get('/expiring', checkPermission('project:view'), c.expiring);
+router.get('/', checkPermission('project:view'), c.list);
+router.post('/', checkPermission('project:create'), c.create);
+router.get('/:id', checkPermission('project:view'), c.get);
+router.put('/:id', checkPermission('project:edit'), c.update);
+router.post('/:id/transition', checkPermission('project:edit'), c.transition);
+router.delete('/:id', checkPermission('project:edit'), c.remove);
+module.exports = router;

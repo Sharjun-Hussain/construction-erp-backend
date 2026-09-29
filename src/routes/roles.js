@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/roleController');
+router.use(authenticate, checkBranchAccess);
+router.get('/permissions/matrix', checkPermission('role:view'), c.matrix);
+router.get('/permissions', checkPermission('role:view'), c.listPermissions);
+router.get('/', checkPermission('role:view'), c.list);
+router.post('/', checkPermission('role:create'), c.create);
+router.get('/:id', checkPermission('role:view'), c.get);
+router.put('/:id', checkPermission('role:edit'), c.update);
+router.delete('/:id', checkPermission('role:delete'), c.remove);
+module.exports = router;

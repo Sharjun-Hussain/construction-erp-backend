@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const ctrl = require('../controllers/estimationController');
+router.use(authenticate, checkBranchAccess);
+router.get('/', checkPermission('estimation:view'), ctrl.list);
+router.post('/', checkPermission('estimation:create'), ctrl.create);
+router.post('/:id/items', checkPermission('estimation:edit'), ctrl.addItem);
+router.post('/:id/approve', checkPermission('estimation:approve'), ctrl.approve);
+module.exports = router;

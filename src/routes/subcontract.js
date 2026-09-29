@@ -1,0 +1,15 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/subcontractController');
+router.use(authenticate, checkBranchAccess);
+router.get('/subcontractors', checkPermission('subcontract:view'), c.listSC);
+router.post('/subcontractors', checkPermission('subcontract:create'), c.createSC);
+router.get('/work-orders', checkPermission('subcontract:view'), c.listWO);
+router.post('/work-orders', checkPermission('subcontract:create'), c.createWO);
+router.post('/work-orders/:id/approve', checkPermission('subcontract:approve'), c.approveWO);
+router.post('/certificates', checkPermission('subcontract:create'), c.certify);
+router.post('/certificates/:id/approve', checkPermission('subcontract:approve'), c.approveCert);
+module.exports = router;

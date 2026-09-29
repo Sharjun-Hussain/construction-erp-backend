@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const ctrl = require('../controllers/tenderController');
+router.use(authenticate, checkBranchAccess);
+router.get('/', checkPermission('tender:view'), ctrl.list);
+router.post('/', checkPermission('tender:create'), ctrl.create);
+router.post('/:id/submit', checkPermission('tender:create'), ctrl.submit);
+router.post('/:id/decision', checkPermission('tender:create'), ctrl.decision);
+module.exports = router;

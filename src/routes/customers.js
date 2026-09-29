@@ -1,0 +1,17 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/customerController');
+router.use(authenticate, checkBranchAccess);
+router.get('/', checkPermission('customer:view'), c.list);
+router.post('/', checkPermission('customer:create'), c.create);
+router.get('/:id', checkPermission('customer:view'), c.get);
+router.get('/:id/statement', checkPermission('customer:view'), c.statement);
+router.get('/:id/contacts', checkPermission('customer:view'), c.listContacts);
+router.post('/:id/contacts', checkPermission('customer:edit'), c.addContact);
+router.delete('/:id/contacts/:contactId', checkPermission('customer:edit'), c.removeContact);
+router.put('/:id', checkPermission('customer:edit'), c.update);
+router.delete('/:id', checkPermission('customer:delete'), c.remove);
+module.exports = router;

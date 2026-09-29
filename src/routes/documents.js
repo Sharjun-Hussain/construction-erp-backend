@@ -1,0 +1,10 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const c = require('../controllers/documentController');
+router.use(authenticate);
+router.get('/', checkPermission('document:view'), c.list);
+router.post('/upload', checkPermission('document:create'), ...c.uploadOne);
+router.get('/:id/download', checkPermission('document:view'), c.download);
+module.exports = router;

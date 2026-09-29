@@ -1,0 +1,14 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const ctrl = require('../controllers/ipcController');
+router.use(authenticate, checkBranchAccess);
+router.get('/', checkPermission('ipc:view'), ctrl.list);
+router.post('/', checkPermission('ipc:create'), ctrl.create);
+router.post('/:id/approve', checkPermission('ipc:create'), ctrl.approve);
+router.post('/:id/transition', checkPermission('ipc:create'), ctrl.transition);
+router.get('/project/:id/wip', checkPermission('ipc:view'), ctrl.wip);
+router.get('/:id', checkPermission('ipc:view'), ctrl.get);
+module.exports = router;

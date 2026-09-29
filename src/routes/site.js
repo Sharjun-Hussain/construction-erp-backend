@@ -1,0 +1,17 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/siteController');
+router.use(authenticate, checkBranchAccess);
+router.get('/dpr', checkPermission('site:view'), c.listDPR);
+router.post('/dpr', checkPermission('site:create'), c.createDPR);
+router.post('/dpr/:id/approve', checkPermission('site:approve'), c.approveDPR);
+router.get('/variations', checkPermission('site:view'), c.listVO);
+router.post('/variations', checkPermission('site:create'), c.createVO);
+router.post('/variations/:id/decision', checkPermission('site:approve'), c.approveVO);
+router.get('/milestones', checkPermission('site:view'), c.listMS);
+router.post('/milestones', checkPermission('site:create'), c.createMS);
+router.put('/milestones/:id', checkPermission('site:create'), c.updateMS);
+module.exports = router;
