@@ -39,11 +39,32 @@ const run = async () => {
     try { await qi.addColumn('boq_items', col, def); console.log('added boq_items.' + col); }
     catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
   }
+  const tenderCols = [
+    ['reference', str], ['title', str], ['client_id', { type: db.Sequelize.UUID, allowNull: true }],
+    ['client_name', str], ['consultant_name', str],
+    ['tender_type', { type: db.Sequelize.ENUM('Open', 'Selective', 'Limited', 'Negotiated'), defaultValue: 'Open' }],
+    ['contract_type', { type: db.Sequelize.ENUM('LumpSum', 'UnitRate', 'CostPlus', 'GMP'), defaultValue: 'LumpSum' }],
+    ['currency', { type: db.Sequelize.STRING(3), defaultValue: 'SAR' }],
+    ['issue_date', { type: db.Sequelize.DATEONLY, allowNull: true }],
+    ['submission_deadline', { type: db.Sequelize.DATEONLY, allowNull: true }],
+    ['validity_date', { type: db.Sequelize.DATEONLY, allowNull: true }],
+    ['cost_amount', money], ['margin_pct', pct], ['contingency_pct', pct], ['escalation_pct', pct],
+    ['bond_type', str], ['bond_amount', money], ['bond_expiry', { type: db.Sequelize.DATEONLY, allowNull: true }],
+    ['bond_ref', str], ['bond_status', { type: db.Sequelize.ENUM('None', 'Pending', 'Issued', 'Released', 'Forfeited'), defaultValue: 'None' }],
+    ['scope', txt], ['baseline_frozen_at', { type: db.Sequelize.DATE, allowNull: true }],
+    ['awarded_at', { type: db.Sequelize.DATE, allowNull: true }],
+    ['awarded_project_id', { type: db.Sequelize.UUID, allowNull: true }],
+    ['reason_lost', str], ['probability', { type: db.Sequelize.INTEGER, defaultValue: 0 }], ['notes', txt],
+  ];
+  for (const [col, def] of tenderCols) {
+    try { await qi.addColumn('tenders', col, def); console.log('added tenders.' + col); }
+    catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  }
   const PERMS = [
     ['project:view', 'Projects'], ['project:create', 'Projects'], ['project:edit', 'Projects'],
     ['boq:view', 'BOQ'], ['boq:create', 'BOQ'], ['boq:edit', 'BOQ'], ['boq:approve', 'BOQ'],
     ['estimation:view', 'Estimation'], ['estimation:create', 'Estimation'], ['estimation:edit', 'Estimation'], ['estimation:approve', 'Estimation'],
-    ['tender:view', 'Tender'], ['tender:create', 'Tender'],
+    ['tender:view', 'Tender'], ['tender:create', 'Tender'], ['tender:delete', 'Tender'], ['tender:edit', 'Tender'],
     ['ipc:view', 'IPC'], ['ipc:create', 'IPC'],
     ['procurement:view', 'Procurement'], ['procurement:create', 'Procurement'], ['procurement:approve', 'Procurement'],
     ['subcontract:view', 'Subcontract'], ['subcontract:create', 'Subcontract'], ['subcontract:approve', 'Subcontract'],
