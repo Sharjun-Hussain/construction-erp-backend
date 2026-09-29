@@ -80,15 +80,11 @@ const startServer = async () => {
       await db.sequelize.authenticate();
       logger.info('DB connected.');
 
-      // Dev auto-sync (use migrations in prod). Alter off to be safe.
-      if (process.env.NODE_ENV !== 'production') {
-        await db.sequelize.sync({ alter: false });
-        logger.info('Models synced (dev).');
+      // Schema is owned by migrations (npm run db:migrate). Never sync here.
+      try {
         const count = await db.User.count();
-        if (count === 0) {
-          logger.info('Fresh DB - run: npm run db:seed');
-        }
-      }
+        if (count === 0) logger.info('Fresh DB - run: npm run db:seed');
+      } catch (e) { logger.warn('DB not migrated - run: npm run db:migrate'); }
       logger.info('System ready.');
       return;
     } catch (err) {
