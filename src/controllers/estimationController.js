@@ -69,12 +69,56 @@ const get = async (req, res, next) => {
 
 const create = async (req, res, next) => {
   try {
-    if (!req.body.project_id) return error(res, 'project_id required', 422);
+    let projectId = req.body.project_id;
+    if (!projectId && req.body.project_name) {
+      const [proj] = await Project.findOrCreate({
+        where: { name: req.body.project_name.trim(), organization_id: req.user.organization_id },
+        defaults: {
+          code: 'PRJ-' + Math.floor(1000 + Math.random() * 9000),
+          client_name: req.body.customer_name || 'Client',
+          organization_id: req.user.organization_id,
+        },
+      });
+      projectId = proj.id;
+    }
+    if (!projectId) {
+      const p = await Project.findOne({ where: { ...org(req) } });
+      if (p) projectId = p.id;
+    }
+    if (!projectId) return error(res, 'Target Project is required', 422);
+
     const t = calcTotals(req.body);
+    const estNumber = (!req.body.auto_generate_job_no && req.body.number && req.body.number.trim())
+      ? req.body.number.trim()
+      : await nextNumber(req.user.organization_id, 'estimation');
+
     const est = await Estimation.create({
-      ...req.body, ...t, ...org(req),
-      number: req.body.number || await nextNumber(req.user.organization_id, 'estimation'),
+      ...req.body,
+      project_id: projectId,
+      ...t,
+      ...org(req),
+      number: estNumber,
     });
+
+    // If copying from an existing estimation
+    if (req.body.copy_estimation_id) {
+      const srcItems = await EstimationItem.findAll({ where: { estimation_id: req.body.copy_estimation_id } });
+      for (const it of srcItems) {
+        const itemData = it.toJSON();
+        delete itemData.id;
+        delete itemData.created_at;
+        delete itemData.updated_at;
+        await EstimationItem.create({ ...itemData, estimation_id: est.id, ...org(req) });
+      }
+      await retotal(est);
+    }
+
+    // Link enquiry status if provided
+    if (req.body.enquiry_id) {
+      const { Enquiry } = require('../models');
+      await Enquiry.update({ status: 'Estimated' }, { where: { id: req.body.enquiry_id, ...org(req) } });
+    }
+
     return success(res, est, 'Estimation created', 201);
   } catch (e) { return next(e); }
 };

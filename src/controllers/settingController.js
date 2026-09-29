@@ -18,6 +18,7 @@ const DEFAULTS = {
     po: 'PO-', grn: 'GRN-', indent: 'IND-', quotation: 'Q-', advance: 'ADV-',
     enquiry: 'ENQ-', inspection: 'INS-', proposal: 'PROP-', job: 'JOB-',
     labour: 'LAB-', equipment: 'EQP-', eqtransfer: 'EQT-', changerequest: 'CR-',
+    item: 'ITM-',
   },
   inventory: { default_min_qty: 0 },
   report_pdf: {

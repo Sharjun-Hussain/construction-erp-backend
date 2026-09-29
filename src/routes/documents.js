@@ -7,4 +7,5 @@ router.use(authenticate);
 router.get('/', checkPermission('document:view'), c.list);
 router.post('/upload', checkPermission('document:create'), ...c.uploadOne);
 router.get('/:id/download', checkPermission('document:view'), c.download);
+router.delete('/:id', checkPermission('document:create'), c.remove);
 module.exports = router;

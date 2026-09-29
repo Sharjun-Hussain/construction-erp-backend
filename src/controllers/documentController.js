@@ -37,4 +37,13 @@ const download = async (req, res, next) => {
     return res.download(path.join(dir, d.file_path), d.file_name);
   } catch (e) { return next(e); }
 };
-module.exports = { uploadOne, list, download };
+const remove = async (req, res, next) => {
+  try {
+    const d = await Document.findOne({ where: { id: req.params.id, organization_id: req.user.organization_id } });
+    if (!d) return success(res, null, 'Not found', 404);
+    try { fs.unlinkSync(path.join(dir, d.file_path)); } catch { /* file already gone */ }
+    await d.destroy();
+    return success(res, null, 'Document deleted');
+  } catch (e) { return next(e); }
+};
+module.exports = { uploadOne, list, download, remove };

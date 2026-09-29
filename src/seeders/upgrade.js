@@ -3,7 +3,7 @@ const db = require('../models');
 // Grants all Permissions to every "Organization Admin" role that misses them.
 // Run after pulling new code: npm run db:upgrade
 const run = async () => {
-  await db.sequelize.sync({ alter: false });
+  try { await db.sequelize.sync({ alter: false }); } catch (e) { console.warn('sync skipped:', e.message); }
   // Column patches for existing installs (ignored if already applied)
   const qi = db.sequelize.getQueryInterface();
   const money = { type: db.Sequelize.DECIMAL(18, 2), defaultValue: 0 };
@@ -29,9 +29,58 @@ const run = async () => {
   catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
   try { await qi.addColumn('materials', 'min_qty', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }); console.log('added materials.min_qty'); }
   catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  const matCols = [
+    ['name_ar', str], ['category', str], ['manufacturer', str], ['manufacturer_part_no', str],
+    ['model_no', str], ['suffix', str], ['description_ar', txt],
+    ['vat_rate_id', { type: db.Sequelize.UUID, allowNull: true }],
+    ['inventory_account', { type: db.Sequelize.STRING, defaultValue: 'Inventory Asset' }],
+    ['income_account', { type: db.Sequelize.STRING, defaultValue: 'Sales of Product Income' }],
+    ['expense_account', { type: db.Sequelize.STRING, defaultValue: 'Cost Of Sales' }],
+    ['preferred_supplier_id', { type: db.Sequelize.UUID, allowNull: true }],
+    ['department', str],
+    ['purchase_unit', str], ['barcode', str], ['brand', str], ['country_of_origin', str],
+    ['lead_time_unit', { type: db.Sequelize.STRING, defaultValue: 'Days' }],
+    ['is_service', { type: db.Sequelize.BOOLEAN, defaultValue: false }],
+    ['is_taxable', { type: db.Sequelize.BOOLEAN, defaultValue: true }],
+    ['is_sellable', { type: db.Sequelize.BOOLEAN, defaultValue: true }],
+    ['is_purchasable', { type: db.Sequelize.BOOLEAN, defaultValue: true }],
+    ['has_tolerance', { type: db.Sequelize.BOOLEAN, defaultValue: false }],
+    ['batch_tracking', { type: db.Sequelize.BOOLEAN, defaultValue: false }],
+    ['serial_tracking', { type: db.Sequelize.BOOLEAN, defaultValue: false }],
+    ['expiry_tracking', { type: db.Sequelize.BOOLEAN, defaultValue: false }],
+    ['discount_pct', pct], ['tolerance_pct', pct],
+    ['conversion_factor', { type: db.Sequelize.DECIMAL(18, 4), defaultValue: 1 }],
+    ['weight_kg', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['length_m', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['width_m', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['height_m', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['max_qty', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['reorder_qty', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }],
+    ['purchase_price', money], ['sell_price', money],
+    ['lead_time_days', { type: db.Sequelize.INTEGER, defaultValue: 0 }],
+    ['shelf_life_days', { type: db.Sequelize.INTEGER, defaultValue: 0 }],
+  ];
+  for (const [col, def] of matCols) {
+    try { await qi.addColumn('materials', col, def); console.log('added materials.' + col); }
+    catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  }
+  const bool = { type: db.Sequelize.BOOLEAN, defaultValue: false };
+  const dateOnly = { type: db.Sequelize.DATEONLY, allowNull: true };
+  const uuid = { type: db.Sequelize.UUID, allowNull: true };
   const estCols = [
     ['subcontract_cost', money],
     ['contingency_pct', pct], ['escalation_pct', pct],
+    ['date', dateOnly], ['enquiry_id', uuid], ['enquiry_no', str],
+    ['reference', str], ['site', str],
+    ['bid_expiry_date', dateOnly], ['expected_start_date', dateOnly], ['expected_end_date', dateOnly],
+    ['salesman', str], ['similar_projects', str],
+    ['customer_name', str], ['customer_address', txt],
+    ['contact_person', str], ['contact_phone', str], ['contact_email', str],
+    ['project_type', str], ['service', str], ['project_name_ar', str],
+    ['extension_no', str], ['parent_project_id', uuid], ['scope_of_work', txt],
+    ['auto_generate_job_no', { type: db.Sequelize.BOOLEAN, defaultValue: true }],
+    ['copy_attachment_enquiry', bool], ['copy_attachment_site_inspection', bool],
+    ['estimate_without_resource', bool], ['default_material_cost_pricelist', bool],
   ];
   for (const [col, def] of estCols) {
     try { await qi.addColumn('estimations', col, def); console.log('added estimations.' + col); }
@@ -90,7 +139,8 @@ const run = async () => {
     ['changerequest:view', 'Changes'], ['changerequest:create', 'Changes'],
     ['master:view', 'Masters'], ['master:create', 'Masters'], ['master:delete', 'Masters'],
     ['ipc:view', 'IPC'], ['ipc:create', 'IPC'],
-    ['procurement:view', 'Procurement'], ['procurement:create', 'Procurement'], ['procurement:approve', 'Procurement'],
+    ['procurement:view', 'Procurement'], ['procurement:create', 'Procurement'],
+    ['procurement:approve', 'Procurement'], ['procurement:delete', 'Procurement'],
     ['subcontract:view', 'Subcontract'], ['subcontract:create', 'Subcontract'], ['subcontract:approve', 'Subcontract'],
     ['site:view', 'Site'], ['site:create', 'Site'], ['site:approve', 'Site'],
     ['document:view', 'Documents'], ['document:create', 'Documents'],
