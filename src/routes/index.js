@@ -15,6 +15,8 @@ router.use('/boqs', require('./boqs'));
 router.use('/estimations', require('./estimations'));
 router.use('/prebid', require('./prebid'));
 router.use('/quotations', require('./quotations'));
+router.use('/sales-orders', require('./salesOrders'));
+router.use('/orders', require('./salesOrders'));
 router.use('/siteops', require('./siteops'));
 router.use('/changes', require('./changes'));
 router.use('/masters', require('./masters'));
