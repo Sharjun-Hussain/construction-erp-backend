@@ -8,10 +8,16 @@ const list = async (req, res, next) => {
   try {
     const where = { ...org(req) };
     if (req.query.active === '1') where.is_active = true;
+    if (req.query.active === '0') where.is_active = false;
     if (req.query.search) {
       where[Op.or] = [{ name: { [Op.like]: `%${req.query.search}%` } }, { name_ar: { [Op.like]: `%${req.query.search}%` } }];
     }
-    const rows = await PriceList.findAll({ where, order: [['is_default', 'DESC'], ['name', 'ASC']] });
+    const SORTABLE = ['name', 'currency', 'created_at'];
+    const sortBy = SORTABLE.includes(req.query.sortBy) ? req.query.sortBy : 'name';
+    const sortDir = String(req.query.sortDir || 'ASC').toUpperCase() === 'DESC' ? 'DESC' : 'ASC';
+    const rows = await PriceList.findAll({ where, order: [[sortBy, sortDir]] });
+    // default list first
+    rows.sort((a, b) => Number(b.is_default) - Number(a.is_default));
     const data = await Promise.all(rows.map(async (r) => {
       const j = r.toJSON();
       j.items_using = await ItemPrice.count({ where: { ...org(req), price_list: r.name } });
