@@ -29,6 +29,15 @@ module.exports = (sequelize, DataTypes) => {
     department: { type: DataTypes.STRING, allowNull: true },
     has_tolerance: { type: DataTypes.BOOLEAN, defaultValue: false },
     tolerance_pct: { type: DataTypes.DECIMAL(5, 2), defaultValue: 0 },
+    // item details phase 2 (Tranquil parity)
+    limit_price_as_cost: { type: DataTypes.BOOLEAN, defaultValue: false },
+    default_warehouse: { type: DataTypes.STRING, allowNull: true },
+    default_locator: { type: DataTypes.STRING, allowNull: true },
+    min_purchase_qty: { type: DataTypes.DECIMAL(18, 3), defaultValue: 0 },
+    purchase_qty_uom: { type: DataTypes.STRING, allowNull: true },
+    min_stock_uom: { type: DataTypes.STRING, allowNull: true },
+    max_stock_uom: { type: DataTypes.STRING, allowNull: true },
+    opening_date: { type: DataTypes.DATEONLY, allowNull: true },
     // item details
     unit: { type: DataTypes.STRING, allowNull: false, defaultValue: 'NOS' },
     purchase_unit: { type: DataTypes.STRING, allowNull: true },
@@ -59,6 +68,8 @@ module.exports = (sequelize, DataTypes) => {
   Material.associate = (models) => {
     Material.hasMany(models.ItemPrice, { as: 'prices', foreignKey: 'material_id' });
     Material.hasMany(models.ItemSpec, { as: 'specs', foreignKey: 'material_id' });
+    Material.hasMany(models.ItemUom, { as: 'uoms', foreignKey: 'material_id' });
+    Material.hasMany(models.ItemStock, { as: 'stocks', foreignKey: 'material_id' });
     Material.belongsTo(models.VatRate, { as: 'vat_rate', foreignKey: 'vat_rate_id' });
     Material.belongsTo(models.Supplier, { as: 'preferred_supplier', foreignKey: 'preferred_supplier_id' });
   };

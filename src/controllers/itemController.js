@@ -1,6 +1,6 @@
 const { Op } = require('sequelize');
 const {
-  Material, ItemPrice, ItemSpec, SiteStock, Document,
+  Material, ItemPrice, ItemSpec, ItemUom, ItemStock, SiteStock, Document,
   PurchaseOrderItem, GrnItem, MaterialIndentItem, Supplier, VatRate,
 } = require('../models');
 const { getPagination } = require('../utils/pagination');
@@ -10,6 +10,13 @@ const { nextNumber } = require('./settingController');
 const org = (req) => ({ organization_id: req.user.organization_id });
 const NUMS = ['vat_pct', 'discount_pct', 'tolerance_pct', 'conversion_factor', 'weight_kg', 'length_m', 'width_m', 'height_m', 'max_qty', 'reorder_qty', 'min_qty', 'purchase_price', 'sell_price', 'last_rate', 'lead_time_days', 'shelf_life_days'];
 const num = (v) => (v === '' || v === undefined || v === null ? v : Number(v));
+const UOM_NUMS = ['conversion_to_base', 'markup_pct', 'purchase_price', 'cost_price', 'sales_price', 'limit_price'];
+const uomNums = (b) => {
+  const out = { ...b };
+  for (const k of UOM_NUMS) if (out[k] !== undefined) out[k] = num(out[k]);
+  // limit price follows cost when the item locks it to latest cost
+  return out;
+};
 const coerce = (b) => {
   const out = { ...b };
   for (const k of NUMS) if (out[k] !== undefined) out[k] = num(out[k]);
@@ -26,6 +33,8 @@ const get = async (req, res, next) => {
       include: [
         { model: ItemPrice, as: 'prices' },
         { model: ItemSpec, as: 'specs' },
+        { model: ItemUom, as: 'uoms' },
+        { model: ItemStock, as: 'stocks' },
         { model: Supplier, as: 'preferred_supplier', attributes: ['id', 'code', 'name'] },
         { model: VatRate, as: 'vat_rate', attributes: ['id', 'name', 'rate'] },
       ],
@@ -52,6 +61,7 @@ const create = async (req, res, next) => {
       if (v) body.vat_pct = Number(v.rate);
     }
     const m = await Material.create({ ...body, ...org(req) });
+    let baseTaken = false, salesTaken = false, purchTaken = false;
     for (const p of (req.body.prices || []).slice(0, 50)) {
       if (!p.unit_price) continue;
       await ItemPrice.create({ ...p, material_id: m.id, ...org(req) });
@@ -59,6 +69,22 @@ const create = async (req, res, next) => {
     for (const [i, s] of ((req.body.specs || []).slice(0, 100)).entries()) {
       if (!s.attr_name) continue;
       await ItemSpec.create({ attr_name: s.attr_name, attr_value: s.attr_value || null, sort_order: i, material_id: m.id, ...org(req) });
+    }
+    for (const u of (req.body.uoms || []).slice(0, 20)) {
+      if (!u.uom) continue;
+      const row = uomNums(u);
+      if (body.limit_price_as_cost && row.cost_price !== undefined) row.limit_price = row.cost_price;
+      if (row.is_base && baseTaken) row.is_base = false;
+      if (row.is_base) baseTaken = true;
+      if (row.is_default_sales && salesTaken) row.is_default_sales = false;
+      if (row.is_default_sales) salesTaken = true;
+      if (row.is_default_purchase && purchTaken) row.is_default_purchase = false;
+      if (row.is_default_purchase) purchTaken = true;
+      await ItemUom.create({ ...row, material_id: m.id, ...org(req) });
+    }
+    for (const s of (req.body.stocks || []).slice(0, 50)) {
+      if (!s.warehouse || !(Number(s.qty) > 0)) continue;
+      await ItemStock.create({ warehouse: s.warehouse, locator: s.locator || null, qty: Number(s.qty), uom: s.uom || null, material_id: m.id, ...org(req) });
     }
     return success(res, m, 'Item created', 201);
   } catch (e) { return next(e); }
@@ -94,6 +120,8 @@ const remove = async (req, res, next) => {
     if (Number(stock || 0) > 0.001) return error(res, 'Item holds stock — deactivate instead', 422);
     await ItemPrice.destroy({ where: { material_id: m.id } });
     await ItemSpec.destroy({ where: { material_id: m.id } });
+    await ItemUom.destroy({ where: { material_id: m.id } });
+    await ItemStock.destroy({ where: { material_id: m.id } });
     await Document.destroy({ where: { ...org(req), entity_type: 'item', entity_id: m.id } });
     await m.destroy();
     return success(res, null, 'Item deleted');
@@ -106,13 +134,15 @@ const duplicate = async (req, res, next) => {
   try {
     const m = await Material.findOne({
       where: { id: req.params.id, ...org(req) },
-      include: [{ model: ItemPrice, as: 'prices' }, { model: ItemSpec, as: 'specs' }],
+      include: [{ model: ItemPrice, as: 'prices' }, { model: ItemSpec, as: 'specs' }, { model: ItemUom, as: 'uoms' }, { model: ItemStock, as: 'stocks' }],
       transaction: t,
     });
     if (!m) { await t.rollback(); return error(res, 'Not found', 404); }
     const j = m.toJSON();
     const prices = j.prices || []; const specs = j.specs || [];
-    delete j.id; delete j.created_at; delete j.updated_at; delete j.prices; delete j.specs;
+    const uoms = j.uoms || []; const stocks = j.stocks || [];
+    delete j.id; delete j.created_at; delete j.updated_at;
+    delete j.prices; delete j.specs; delete j.uoms; delete j.stocks;
     delete j.preferred_supplier; delete j.vat_rate;
     const copy = await Material.create({
       ...j, code: req.body.code || await nextNumber(req.user.organization_id, 'item', t),
@@ -125,6 +155,14 @@ const duplicate = async (req, res, next) => {
     for (const s of specs) {
       const k = { ...s }; delete k.id; delete k.created_at; delete k.updated_at;
       await ItemSpec.create({ ...k, material_id: copy.id }, { transaction: t });
+    }
+    for (const u of uoms) {
+      const k = { ...u }; delete k.id; delete k.created_at; delete k.updated_at;
+      await ItemUom.create({ ...k, material_id: copy.id }, { transaction: t });
+    }
+    for (const s of stocks) {
+      const k = { ...s }; delete k.id; delete k.created_at; delete k.updated_at;
+      await ItemStock.create({ ...k, material_id: copy.id }, { transaction: t });
     }
     await t.commit();
     return success(res, copy, 'Item duplicated', 201);
@@ -213,7 +251,70 @@ const catalog = async (req, res, next) => {
   } catch (e) { return next(e); }
 };
 
+// ---- UOM conversions ----
+const addUom = async (req, res, next) => {
+  const t = await ItemUom.sequelize.transaction();
+  try {
+    const m = await Material.findOne({ where: { id: req.params.id, ...org(req) }, transaction: t });
+    if (!m) { await t.rollback(); return error(res, 'Not found', 404); }
+    if (!req.body.uom) { await t.rollback(); return error(res, 'uom required', 422); }
+    const body = uomNums(req.body);
+    if (m.limit_price_as_cost && body.cost_price !== undefined) body.limit_price = body.cost_price;
+    if (body.is_base) await ItemUom.update({ is_base: false }, { where: { material_id: m.id }, transaction: t });
+    if (body.is_default_sales) await ItemUom.update({ is_default_sales: false }, { where: { material_id: m.id }, transaction: t });
+    if (body.is_default_purchase) await ItemUom.update({ is_default_purchase: false }, { where: { material_id: m.id }, transaction: t });
+    const u = await ItemUom.create({ ...body, material_id: m.id, ...org(req) }, { transaction: t });
+    await t.commit();
+    return success(res, u, 'UOM added', 201);
+  } catch (e) { await t.rollback(); return next(e); }
+};
+const updateUom = async (req, res, next) => {
+  const t = await ItemUom.sequelize.transaction();
+  try {
+    const u = await ItemUom.findOne({ where: { id: req.params.uomId, ...org(req) }, transaction: t });
+    if (!u) { await t.rollback(); return error(res, 'Not found', 404); }
+    const body = uomNums(req.body);
+    const m = await Material.findOne({ where: { id: u.material_id, ...org(req) }, transaction: t });
+    if (m?.limit_price_as_cost && body.cost_price !== undefined) body.limit_price = body.cost_price;
+    if (body.is_base) await ItemUom.update({ is_base: false }, { where: { material_id: u.material_id }, transaction: t });
+    if (body.is_default_sales) await ItemUom.update({ is_default_sales: false }, { where: { material_id: u.material_id }, transaction: t });
+    if (body.is_default_purchase) await ItemUom.update({ is_default_purchase: false }, { where: { material_id: u.material_id }, transaction: t });
+    await u.update(body, { transaction: t });
+    await t.commit();
+    return success(res, u, 'UOM updated');
+  } catch (e) { await t.rollback(); return next(e); }
+};
+const removeUom = async (req, res, next) => {
+  try {
+    const u = await ItemUom.findOne({ where: { id: req.params.uomId, ...org(req) } });
+    if (!u) return error(res, 'Not found', 404);
+    if (u.is_base) return error(res, 'Base UOM cannot be removed — set another base first', 422);
+    await u.destroy();
+    return success(res, null, 'UOM deleted');
+  } catch (e) { return next(e); }
+};
+
+// ---- Warehouse opening stock ----
+const addStock = async (req, res, next) => {
+  try {
+    const m = await findItem(req, req.params.id);
+    if (!m) return error(res, 'Not found', 404);
+    if (!req.body.warehouse || !(Number(req.body.qty) > 0)) return error(res, 'warehouse and qty required', 422);
+    const s = await ItemStock.create({ warehouse: req.body.warehouse, locator: req.body.locator || null, qty: Number(req.body.qty), uom: req.body.uom || m.unit, material_id: m.id, ...org(req) });
+    return success(res, s, 'Opening stock added', 201);
+  } catch (e) { return next(e); }
+};
+const removeStock = async (req, res, next) => {
+  try {
+    const s = await ItemStock.findOne({ where: { id: req.params.stockId, ...org(req) } });
+    if (!s) return error(res, 'Not found', 404);
+    await s.destroy();
+    return success(res, null, 'Opening stock deleted');
+  } catch (e) { return next(e); }
+};
+
 module.exports = {
   get, create, update, remove, duplicate, catalog,
   addPrice, updatePrice, removePrice, addSpec, updateSpec, removeSpec,
+  addUom, updateUom, removeUom, addStock, removeStock,
 };

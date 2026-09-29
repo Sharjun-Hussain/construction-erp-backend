@@ -23,6 +23,11 @@ router.delete('/items/prices/:priceId', checkPermission('procurement:delete'), i
 router.post('/items/:id/specs', checkPermission('procurement:create'), items.addSpec);
 router.put('/items/specs/:specId', checkPermission('procurement:create'), items.updateSpec);
 router.delete('/items/specs/:specId', checkPermission('procurement:delete'), items.removeSpec);
+router.post('/items/:id/uoms', checkPermission('procurement:create'), items.addUom);
+router.put('/items/uoms/:uomId', checkPermission('procurement:create'), items.updateUom);
+router.delete('/items/uoms/:uomId', checkPermission('procurement:delete'), items.removeUom);
+router.post('/items/:id/stocks', checkPermission('procurement:create'), items.addStock);
+router.delete('/items/stocks/:stockId', checkPermission('procurement:delete'), items.removeStock);
 router.get('/reorder', checkPermission('procurement:view'), c.reorder);
 router.get('/indents', checkPermission('procurement:view'), c.listIndents);
 router.post('/indents', checkPermission('procurement:create'), c.createIndent);
