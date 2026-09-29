@@ -9,6 +9,7 @@ router.use(authenticate, checkBranchAccess);
 router.get('/enquiries', checkPermission('enquiry:view'), c.listEnquiries);
 router.get('/enquiries/:id', checkPermission('enquiry:view'), c.getEnquiry);
 router.post('/enquiries', checkPermission('enquiry:create'), c.createEnquiry);
+router.put('/enquiries/:id', checkPermission('enquiry:create'), c.updateEnquiry);
 router.post('/enquiries/:id/transition', checkPermission('enquiry:create'), c.transitionEnquiry);
 router.post('/enquiries/:id/convert', checkPermission('enquiry:create'), c.convertEnquiry);
 // Site inspections

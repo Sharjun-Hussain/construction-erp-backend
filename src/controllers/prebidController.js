@@ -67,6 +67,24 @@ const createEnquiry = async (req, res, next) => {
   } catch (e) { return next(e); }
 };
 
+const updateEnquiry = async (req, res, next) => {
+  try {
+    const e = await Enquiry.findOne({ where: { id: req.params.id, ...org(req) } });
+    if (!e) return error(res, 'Not found', 404);
+    const body = { ...req.body };
+    if (body.client_id && !body.client_name) {
+      const c = await Customer.findOne({ where: { id: body.client_id, ...org(req) } });
+      if (c) body.client_name = c.name;
+    }
+    delete body.id;
+    delete body.organization_id;
+    delete body.number;
+    delete body.tender_id;
+    await e.update(body);
+    return success(res, e, 'Enquiry updated successfully');
+  } catch (e) { return next(e); }
+};
+
 const transitionEnquiry = async (req, res, next) => {
   try {
     const e = await Enquiry.findOne({ where: { id: req.params.id, ...org(req) } });
@@ -301,7 +319,7 @@ const exportProposal = async (req, res, next) => {
 };
 
 module.exports = {
-  listEnquiries, getEnquiry, createEnquiry, transitionEnquiry, convertEnquiry,
+  listEnquiries, getEnquiry, createEnquiry, updateEnquiry, transitionEnquiry, convertEnquiry,
   listInspections, getInspection, createInspection, completeInspection,
   listProposals, getProposal, createProposal, transitionProposal, reviseProposal, exportProposal,
 };
