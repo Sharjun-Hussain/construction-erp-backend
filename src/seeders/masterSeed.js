@@ -111,6 +111,13 @@ const run = async () => {
       });
       if (isNew) seeded++;
     }
+    for (const [name, isDefault] of [['Standard', true], ['Contractor', false], ['Retail', false]]) {
+      const [, isNew] = await db.PriceList.findOrCreate({
+        where: { organization_id: o.id, name },
+        defaults: { organization_id: o.id, name, is_default: isDefault },
+      });
+      if (isNew) seeded++;
+    }
   }
 
   console.log(`seeded: ${perms.length} perms, ${adminRoles.length} admin roles (${granted} new grants), ${seeded} lookups/vat, admin admin@qulf.sa`);

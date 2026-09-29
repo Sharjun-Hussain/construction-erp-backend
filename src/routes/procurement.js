@@ -5,6 +5,7 @@ const { checkPermission } = require('../middleware/checkPermission');
 const { checkBranchAccess } = require('../middleware/branchAccess');
 const c = require('../controllers/procurementController');
 const items = require('../controllers/itemController');
+const pricelists = require('../controllers/priceListController');
 router.use(authenticate, checkBranchAccess);
 router.get('/suppliers', checkPermission('procurement:view'), c.listSuppliers);
 router.post('/suppliers', checkPermission('procurement:create'), c.createSupplier);
@@ -28,6 +29,10 @@ router.put('/items/uoms/:uomId', checkPermission('procurement:create'), items.up
 router.delete('/items/uoms/:uomId', checkPermission('procurement:delete'), items.removeUom);
 router.post('/items/:id/stocks', checkPermission('procurement:create'), items.addStock);
 router.delete('/items/stocks/:stockId', checkPermission('procurement:delete'), items.removeStock);
+router.get('/pricelists', checkPermission('procurement:view'), pricelists.list);
+router.post('/pricelists', checkPermission('procurement:create'), pricelists.create);
+router.put('/pricelists/:id', checkPermission('procurement:create'), pricelists.update);
+router.delete('/pricelists/:id', checkPermission('procurement:delete'), pricelists.remove);
 router.get('/reorder', checkPermission('procurement:view'), c.reorder);
 router.get('/indents', checkPermission('procurement:view'), c.listIndents);
 router.post('/indents', checkPermission('procurement:create'), c.createIndent);
