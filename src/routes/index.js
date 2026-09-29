@@ -29,4 +29,5 @@ router.use('/documents', require('./documents'));
 router.use('/dashboard', require('./dashboard'));
 router.use('/boqs', require('./boqImport'));
 router.use('/organizations', require('./organizations'));
+router.use('/warehouses', require('./warehouses'));
 module.exports = router;
