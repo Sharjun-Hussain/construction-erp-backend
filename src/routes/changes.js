@@ -1,0 +1,12 @@
+const express = require('express');
+const router = express.Router();
+const authenticate = require('../middleware/auth');
+const { checkPermission } = require('../middleware/checkPermission');
+const { checkBranchAccess } = require('../middleware/branchAccess');
+const c = require('../controllers/changeController');
+router.use(authenticate, checkBranchAccess);
+router.get('/', checkPermission('changerequest:view'), c.list);
+router.post('/', checkPermission('changerequest:create'), c.create);
+router.post('/:id/transition', checkPermission('changerequest:create'), c.transition);
+router.post('/:id/convert', checkPermission('changerequest:create'), c.convert);
+module.exports = router;

@@ -16,6 +16,8 @@ const DEFAULTS = {
     padding: 4,
     project: 'PRJ-', boq: 'BOQ-', estimation: 'EST-', tender: 'TEN-', ipc: 'IPC-',
     po: 'PO-', grn: 'GRN-', indent: 'IND-', quotation: 'Q-', advance: 'ADV-',
+    enquiry: 'ENQ-', inspection: 'INS-', proposal: 'PROP-', job: 'JOB-',
+    labour: 'LAB-', equipment: 'EQP-', eqtransfer: 'EQT-', changerequest: 'CR-',
   },
   inventory: { default_min_qty: 0 },
 };

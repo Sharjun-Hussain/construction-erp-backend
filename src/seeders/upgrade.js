@@ -29,6 +29,22 @@ const run = async () => {
   catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
   try { await qi.addColumn('materials', 'min_qty', { type: db.Sequelize.DECIMAL(18, 3), defaultValue: 0 }); console.log('added materials.min_qty'); }
   catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  const estCols = [
+    ['subcontract_cost', money],
+    ['contingency_pct', pct], ['escalation_pct', pct],
+  ];
+  for (const [col, def] of estCols) {
+    try { await qi.addColumn('estimations', col, def); console.log('added estimations.' + col); }
+    catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  }
+  const estItemCols = [
+    ['division', str], ['sort_order', { type: db.Sequelize.INTEGER, defaultValue: 0 }],
+    ['resource_type', { type: db.Sequelize.ENUM('Material', 'Labor', 'Equipment', 'Subcontract', 'Mixed'), defaultValue: 'Mixed' }],
+  ];
+  for (const [col, def] of estItemCols) {
+    try { await qi.addColumn('estimation_items', col, def); console.log('added estimation_items.' + col); }
+    catch (e) { if (!/duplicate/i.test(e.message)) throw e; }
+  }
   const itemCols = [
     ['division', { type: db.Sequelize.STRING, allowNull: true }],
     ['sort_order', { type: db.Sequelize.INTEGER, defaultValue: 0 }],
@@ -65,6 +81,13 @@ const run = async () => {
     ['boq:view', 'BOQ'], ['boq:create', 'BOQ'], ['boq:edit', 'BOQ'], ['boq:approve', 'BOQ'],
     ['estimation:view', 'Estimation'], ['estimation:create', 'Estimation'], ['estimation:edit', 'Estimation'], ['estimation:approve', 'Estimation'],
     ['tender:view', 'Tender'], ['tender:create', 'Tender'], ['tender:delete', 'Tender'], ['tender:edit', 'Tender'],
+    ['enquiry:view', 'PreBid'], ['enquiry:create', 'PreBid'],
+    ['inspection:view', 'PreBid'], ['inspection:create', 'PreBid'],
+    ['proposal:view', 'PreBid'], ['proposal:create', 'PreBid'],
+    ['labour:view', 'SiteOps'], ['labour:create', 'SiteOps'],
+    ['equipment:view', 'SiteOps'], ['equipment:create', 'SiteOps'],
+    ['job:view', 'SiteOps'], ['job:create', 'SiteOps'],
+    ['changerequest:view', 'Changes'], ['changerequest:create', 'Changes'],
     ['ipc:view', 'IPC'], ['ipc:create', 'IPC'],
     ['procurement:view', 'Procurement'], ['procurement:create', 'Procurement'], ['procurement:approve', 'Procurement'],
     ['subcontract:view', 'Subcontract'], ['subcontract:create', 'Subcontract'], ['subcontract:approve', 'Subcontract'],
